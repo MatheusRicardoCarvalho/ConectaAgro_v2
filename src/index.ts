@@ -1,39 +1,22 @@
 import { Message, Whatsapp, create } from "venom-bot"
-import { ChatCompletionRequestMessage } from "openai"
-import { config } from "./config"
-import { openai } from "./lib/openai"
+import { createMessage, executeRun, getThread, openai } from "./lib/openai"
 import { conectaAgro } from "./prompts/conectaAgro"
-import { redis } from "./lib/redis"
+import { addNewThread, findThreadIdByNumber } from "./handleTrheads"
+import OpenAI from "openai"
+import { Thread, Threads } from "openai/resources/beta/threads/threads"
 
-interface CustomerChat {
-  status?: "open" | "closed"
-  //orderCode: string
-  chatAt: string
-  customer: {
-    name: string
-    phone: string
-  }
-  messages: ChatCompletionRequestMessage[]
-  //orderSummary?: string
+/*interface ThreadOpenAi {
+  id: string;
+  object: string;
+  created_at: number;
+  metadata: Record<string, any>;
+  tool_resources: Record<string, any>;
+}*/
+
+
+export function isInstanceOfThread(obj: any): obj is Thread {
+  return 'id' in obj;
 }
-
-const customerChat: ChatCompletionRequestMessage[] = [{
-  role: "system",
-  content: conectaAgro
-}]
-
-async function completion(messages: ChatCompletionRequestMessage[]): Promise<string | undefined> 
-{
-  const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
-    temperature: 0.7,
-    max_tokens: 256,
-    messages,
-  })
-
-  return completion.data.choices[0].message?.content
-}
-
 
 create({
   session: "GPZAP",
@@ -48,54 +31,41 @@ async function start(client: Whatsapp) {
   client.onMessage(async (message: Message) => {
     if (!message.body || message.isGroupMsg) return
 
+    let resposta = ''
     const customerPhone = `+${message.from.replace("@c.us", "")}`
     const customerName = message.author
     const customerKey = `customer:${customerPhone}:chat`
-    const lastChat = JSON.parse((await redis.get(customerKey)) || "[]") // carrega a conversa do cliente do Redis
+    const threadId = findThreadIdByNumber(customerPhone)
+    let thread: Thread | string
+    console.log(JSON.stringify(threadId)+'')
+    if(threadId == null){
+      console.log('Vamos obter uma nova thread')
+        thread = await addNewThread(customerPhone)
+    } else thread = await getThread(threadId)
     
-    const customerChat: CustomerChat =
-    lastChat?.status === "open"
-      ? (lastChat as CustomerChat) // carrega a mensagem do cliente do Redis ou crie uma nova
-      : {
-          status: "open",
-          chatAt: new Date().toISOString(),
-          customer: {
-            name: customerName,
-            phone: customerPhone,
-          },
-          messages: [
-            {
-              role: "system",
-              content: conectaAgro,
-            },
-          ]
-        }
+    
+    if (isInstanceOfThread(thread)) {
+      console.log("entrou aqui")
+      createMessage(message.content, thread)
+      resposta = await executeRun(thread)+''
+    }else console.log(thread)
+    
+    
 
   console.debug(customerPhone, "👤", message.body)
 
-  customerChat.messages.push({
-    role: "user",
-    content: message.body,
-  })
-
   
   if(message.body.toLowerCase() === "finalizar"){
-    customerChat.status = "closed"
+
     await client.sendText(message.from, "Obrigado por entrar em contato. Qualquer dúvida, estou disponível!")
     return
   }
-  const content = (await completion(customerChat.messages)) || "Não entendi..."
 
-  customerChat.messages.push({
-    role: "assistant",
-    content,
-  })
+  //console.debug(customerPhone, "🤖", content)
 
-  console.debug(customerPhone, "🤖", content)
-
-  await client.sendText(message.from, content)
+  await client.sendText(message.from, resposta)
   
-  redis.set(customerKey, JSON.stringify(customerChat))
+  //redis.set(customerKey, JSON.stringify(customerChat))
 
   })
 }
