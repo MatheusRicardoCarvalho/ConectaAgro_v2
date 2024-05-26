@@ -62,7 +62,7 @@ export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
     for (const message of messages.data.reverse()) {
       if ('text' in message.content[0] && message.content[0].text) {
         console.log(message.content[0].text.value);
-        resposta = message.content[0].text.value; // Se você quiser armazenar a resposta
+        resposta = message.content[0].text.value;
       }
     }
   } else {

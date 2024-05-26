@@ -11,9 +11,7 @@ export async function addNewThread(numero: string) {
   try {
     const thread = await createThread();
     const threadsData = JSON.parse(fs.readFileSync('src/threads.json', 'utf8'));
-    console.log("Thread criada: "+ JSON.stringify(thread))
     if (isInstanceOfThread(thread)) {
-      console.log("TUDO NOS CONFORMES ESTAMOS PRA JOGO")
         threadsData[numero] = thread.id;
         fs.writeFileSync('src/threads.json', JSON.stringify(threadsData, null, 2));
         return thread;

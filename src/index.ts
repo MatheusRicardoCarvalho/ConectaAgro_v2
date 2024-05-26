@@ -43,6 +43,7 @@ async function connectToWhatsApp() {
       if (!m.messages || m.messages.length === 0) return;
       
       const message = m.messages[0];
+      console.log('Aqui ------------'+JSON.stringify(m.messages) + '-----'+ m.messages[0])
       if (!message.message || message.key.fromMe) return;
 
       let resposta = '';
@@ -59,9 +60,14 @@ async function connectToWhatsApp() {
           thread = await addNewThread(customerPhone);
       } else thread = await getThread(threadId);
 
+
       if (isInstanceOfThread(thread)) {
           console.log('entrou aqui');
-          if(message?.message?.conversation) createMessage(message.message.conversation, thread);
+
+          const messageText = message.message.extendedTextMessage?.text || '';
+
+          if(message?.message?.extendedTextMessage?.text) createMessage(messageText, thread);
+          
           resposta = await executeRun(thread) + '';
       } else console.log(thread);
 
