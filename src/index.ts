@@ -19,8 +19,11 @@ export function isInstanceOfThread(obj: any): obj is Thread {
 }
 
 create({
-  session: "GPZAP",
-  disableWelcome: true,
+  session: 'GPZAP', //nome da sessão
+  browserArgs: ['--no-sandbox', '--disable-setuid-sandbox'],
+  devtools: false,
+  debug: true,
+  logQR: true,
 })
   .then(async (client: Whatsapp) => await start(client))
   .catch((err) => {
