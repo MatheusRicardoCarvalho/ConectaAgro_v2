@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path';
 
 import { createThread } from './lib/openai';
-import { isInstanceOfThread } from '.';
+import { isInstanceOfThread } from './index';
 import { error } from 'console';
 
 export async function addNewThread(numero: string) {
