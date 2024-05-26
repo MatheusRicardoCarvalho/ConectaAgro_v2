@@ -5,7 +5,6 @@ import { conectaAgro } from './prompts/conectaAgro';
 import { addNewThread, findThreadIdByNumber } from './handleTrheads';
 import { Thread } from 'openai/resources/beta/threads/threads';
 import { Boom } from '@hapi/boom'
-import P from 'Pino'
 
 export function isInstanceOfThread(obj: any): obj is Thread {
   return 'id' in obj;
