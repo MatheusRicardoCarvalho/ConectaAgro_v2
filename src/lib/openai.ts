@@ -44,6 +44,21 @@ export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
   const assistant = await getAssistant();
   let resposta = '';
 
+  
+
+  const allRuns = await openai.beta.threads.runs.list(thread.id);
+
+  // Verifica se alguma execução está em andamento
+  const inProgressRun = allRuns.data.find((run) => run.status === 'in_progress');
+  if (inProgressRun) {
+    // Aguarda a execução em andamento ser concluída
+    while (inProgressRun.status === 'in_progress') {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const updatedRun = await openai.beta.threads.runs.retrieve(thread.id, inProgressRun.id);
+      inProgressRun.status = updatedRun.status;
+    }
+  }
+
   let run = await openai.beta.threads.runs.createAndPoll(
     thread.id,
     { 
