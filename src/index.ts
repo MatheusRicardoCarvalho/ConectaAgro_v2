@@ -1,10 +1,8 @@
-import makeWASocket, { fetchLatestBaileysVersion } from '@whiskeysockets/baileys'
+import makeWASocket, { MessageUpsertType, fetchLatestBaileysVersion } from '@whiskeysockets/baileys'
 import { useMultiFileAuthState, DisconnectReason  } from '@whiskeysockets/baileys';
-import { createMessage, executeRun, getThread } from './lib/openai';
-import { conectaAgro } from './prompts/conectaAgro';
-import { addNewThread, findThreadIdByNumber } from './handleTrheads';
 import { Thread } from 'openai/resources/beta/threads/threads';
 import { Boom } from '@hapi/boom'
+import { handleUpsert } from './whatsappEvents/messagesEvent/handleUpsert';
 
 export function isInstanceOfThread(obj: any): obj is Thread {
   return 'id' in obj;
@@ -40,61 +38,7 @@ async function connectToWhatsApp() {
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('messages.upsert', async (m) => {
-    if (!m.messages || m.messages.length === 0) return;
-  
-    const message = m.messages[0];
-    console.log('Aqui ------------' + JSON.stringify(m.messages) + '-----' + JSON.stringify(message));
-  
-    if (!message.message || message.key.fromMe) return;
-  
-    // Verificar se a mensagem é enviada por uma pessoa (não em um grupo)
-    if ( message?.key?.remoteJid && message.key.remoteJid.endsWith('@g.us')) {
-      return; // Ignorar mensagens enviadas em grupos
-    }
-  
-    // Verificar se a mensagem é de texto simples ou texto estendido
-    const isTextMessage = message.message.conversation;
-    const isExtendedTextMessage = message.message.extendedTextMessage && message.message.extendedTextMessage.text;
-  
-    if (!isTextMessage && !isExtendedTextMessage) {
-      return; // Ignorar mensagens que não sejam de texto simples ou texto estendido
-    }
-  
-    // Extrair o texto da mensagem
-    
-    const messageText = isTextMessage ? message.message.conversation : message.message.extendedTextMessage?.text || '';
-  
-    let resposta = '';
-    const customerPhone =  message.key.remoteJid!.replace('@s.whatsapp.net', '');
-    const customerKey = `customer:${customerPhone}:chat`;
-    const threadId = findThreadIdByNumber(customerPhone);
-    let thread;
-  
-    console.log(JSON.stringify(threadId) + '');
-  
-    if (threadId == null) {
-      console.log('Vamos obter uma nova thread');
-      thread = await addNewThread(customerPhone);
-    } else {
-      thread = await getThread(threadId);
-    }
-  
-    if (isInstanceOfThread(thread)) {
-      console.log('entrou aqui');
-      if (messageText) createMessage(messageText, thread);
-      resposta = await executeRun(thread) + '';
-    } else {
-      console.log(thread);
-    }
-  
-    console.debug(customerPhone, '👤', messageText);
-  
-    if (messageText && messageText.toLowerCase() === 'finalizar') {
-      await sock.sendMessage(message.key.remoteJid!, { text: 'Obrigado por entrar em contato. Qualquer dúvida, estou disponível!' });
-      return;
-    }
-  
-    await sock.sendMessage(message.key.remoteJid!, { text: resposta });
+    await handleUpsert(m, sock)
   });
   
 }
