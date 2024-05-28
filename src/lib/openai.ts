@@ -65,7 +65,8 @@ export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
       // Crie uma nova run
       let run = await openai.beta.threads.runs.createAndPoll(
         thread.id,
-        { assistant_id: assistant.id }
+        { assistant_id: assistant.id , model: "gpt-4-turbo"},
+        
       );
 
       if (run.status === 'completed') {
