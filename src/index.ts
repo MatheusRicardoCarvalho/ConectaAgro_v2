@@ -3,6 +3,8 @@ import { useMultiFileAuthState, DisconnectReason  } from '@whiskeysockets/bailey
 import { Thread } from 'openai/resources/beta/threads/threads';
 import { Boom } from '@hapi/boom'
 import { handleUpsert } from './whatsappEvents/messagesEvent/handleUpsert';
+import cron from 'node-cron'
+import { whatsappTriggerIrrigacao } from './triggers/whatsappTriggerIrrigacao';
 
 export function isInstanceOfThread(obj: any): obj is Thread {
   return 'id' in obj;
@@ -41,6 +43,12 @@ async function connectToWhatsApp() {
     await handleUpsert(m, sock)
   });
   
+  cron.schedule('0 5 * * *', async () => {
+    console.log('Chamando função whatsappTriggerIrrigacao...');
+    await whatsappTriggerIrrigacao(sock); 
+  });  
+
 }
+
 console.log("Por favor senhor me ajuda")
 connectToWhatsApp();
