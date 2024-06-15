@@ -43,10 +43,10 @@ async function connectToWhatsApp() {
     await handleUpsert(m, sock)
   });
   
-  cron.schedule('0 5 * * *', async () => {
+  /*cron.schedule('0 5 * * *', async () => {
     console.log('Chamando função whatsappTriggerIrrigacao...');
     await whatsappTriggerIrrigacao(sock); 
-  });  
+  }); */ 
 
 }
 

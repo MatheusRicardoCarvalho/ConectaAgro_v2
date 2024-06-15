@@ -35,7 +35,7 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket) {
     const threadId = findThreadIdByNumber(customerPhone);
     let thread;
 
-    if(customerPhone != "558788473508" && customerPhone != "558198386191") return
+    //if(customerPhone != "558788473508" && customerPhone != "558198386191") return SE NÃO FOR O NÚMERO DE TESTES OU O DE MARCELO NEGA A RESPOSTA
   
     console.log(JSON.stringify(threadId) + '');
   
