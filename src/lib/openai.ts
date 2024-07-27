@@ -1,14 +1,15 @@
 import OpenAI from "openai";
 import * as dotenv from 'dotenv';
 import { ExecutionQueue } from "./ExecutionQueue";
+import { Run } from "openai/resources/beta/threads/runs/runs";
+import { ResponseAgricultorFilterDTO } from "../components/api/dtos/agricultor/ResponseAgricultorFilterDto";
 dotenv.config();
 
 const executionQueue = new ExecutionQueue();
 
 export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function getAssistant() {
-  const assistantId = process.env.ASSISTANT_ID + '';
+export async function getAssistant(assistantId: string) {
   const assistant = await openai.beta.assistants.retrieve(assistantId);
   return assistant;
 }
@@ -37,10 +38,24 @@ export async function createMessage(content: string, thread: OpenAI.Beta.Threads
   );
 }
 
-export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
-  const assistant = await getAssistant();
-  let resposta = '';
+export async function executeRun(thread: OpenAI.Beta.Threads.Thread, assistanId: string, userData: ResponseAgricultorFilterDTO) {
+  const assistant = await getAssistant(assistanId);
+  let resposta = "";
+  const userInfo = `
+  Nome: ${userData.nome || "não informado"}
+  Idade: ${userData.idade !== null ? userData.idade : "não informado"}
+  Gênero: ${userData.genero || "não informado"}
+  Localidade: ${userData.localidade || "não informado"}
+  Telefone: ${userData.telefone || "não informado"}
+  Email: ${userData.email || "não informado"}
+  Escolaridade: ${userData.escolaridade || "não informado"}
+  Tamanho da Propriedade: ${userData.tamanhoPropriedade !== null ? userData.tamanhoPropriedade : "não informado"}
+  Culturas: ${userData.culturas.length > 0 ? userData.culturas.join(", ") : "não informado"}
+  `;
 
+  const instructions = `Aqui estão algumas informações básicas desse usuário: ${userInfo}`;
+  console.log(instructions)
+  
   await executionQueue.enqueue(async () => {
     try {
       const allRuns = await openai.beta.threads.runs.list(thread.id, { limit: 20, order: 'desc' });
@@ -65,14 +80,16 @@ export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
       // Crie uma nova run
       let run = await openai.beta.threads.runs.createAndPoll(
         thread.id,
-        { assistant_id: assistant.id , model: "gpt-4-turbo"},
-        
+        { 
+          assistant_id: assistant.id , 
+          additional_instructions: instructions
+        }
       );
 
       if (run.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(run.thread_id);
         const lastMessage = messages.data[messages.data.length - 1];
-
+        
         // Itera sobre o conteúdo da última mensagem
         for (const message of messages.data.reverse()) {
           if ('text' in message.content[0] && message.content[0].text) {
@@ -80,9 +97,16 @@ export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
             resposta = message.content[0].text.value;
           }
         }
-      } else {
+      } else if (run.status === "requires_action") {
+        console.log(run.status);
+        resposta += await handleRunStatus(run, thread);
+      } else if (run.status === "incomplete") {
+        console.log(run.status);
+        resposta += 'A resposta gerada foi INCOMPLETA'
+      } 
+      else {
         console.log("Run status:", run.status);
-        resposta = "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?"
+        resposta = "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?";
       }
 
     } catch (error) {
@@ -92,4 +116,76 @@ export async function executeRun(thread: OpenAI.Beta.Threads.Thread) {
   });
 
   return resposta;
+}
+
+async function handleRunStatus(run: Run, thread: OpenAI.Beta.Threads.Thread): Promise<string | undefined> {
+  try {
+    if (run.status === 'completed') {
+      const messages = await openai.beta.threads.messages.list(thread.id);
+      const lastMessage = messages.data[messages.data.length - 1];
+
+      // Itera sobre o conteúdo da última mensagem
+      for (const message of messages.data.reverse()) {
+        if ('text' in message.content[0] && message.content[0].text) {
+          //console.log("Resposta BOT: "+message.content[0].text.value);
+          return message.content[0].text.value;
+        }
+      }
+    } else if (run.status === "requires_action") {
+      console.log(run.status);
+      return await handleRequiresAction(run, thread);
+    } else {
+      console.log("Run status:", run.status);
+      return "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?";
+    }
+  } catch (error) {
+    console.error("Erro ao executar run:", error);
+    throw error;
+  }
+  return undefined;
+}
+
+async function handleRequiresAction(run: Run, thread: OpenAI.Beta.Threads.Thread): Promise<string | undefined> {
+  // Check if there are tools that require outputs
+  if (
+    run.required_action &&
+    run.required_action.submit_tool_outputs &&
+    run.required_action.submit_tool_outputs.tool_calls
+  ) {
+    // Loop through each tool in the required action section
+    const toolOutputs = run.required_action.submit_tool_outputs.tool_calls
+      .map((tool) => {
+        if (tool.function.name === "getCurrentTemperature") {
+          return {
+            tool_call_id: tool.id,
+            output: "57",
+          };
+        } else if (tool.function.name === "irrigacao") {
+          const params = tool.function.arguments
+          console.log("parametros: \n\n"+params)
+          return {
+            tool_call_id: tool.id,
+            output: "O agricultor precisa irrigar 0.8 mm de água na plantação de tomate",
+          };
+        }
+        return undefined; // Explicitly return undefined for other cases
+      })
+      .filter((toolOutput): toolOutput is { tool_call_id: string; output: string } => toolOutput !== undefined); // Filter out undefined values
+
+    // Submit all tool outputs at once after collecting them in a list
+    if (toolOutputs.length > 0) {
+      run = await openai.beta.threads.runs.submitToolOutputsAndPoll(
+        thread.id,
+        run.id,
+        { tool_outputs: toolOutputs }
+      );
+      console.log("Tool outputs submitted successfully.");
+    } else {
+      console.log("No tool outputs to submit.");
+    }
+
+    // Check status after submitting tool outputs
+    return handleRunStatus(run, thread);
+  }
+  return undefined;
 }
