@@ -1,7 +1,7 @@
 // src/logger/Logger.ts
 import fs from 'fs';
 import path from 'path';
-import { LogLevel } from './logLevel';
+import { LogLevel } from './LogLevel';
 
 export class Logger {
   private logFilePath: string;
