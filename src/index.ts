@@ -5,10 +5,13 @@ import { Boom } from '@hapi/boom'
 import { handleUpsert } from './whatsappEvents/messagesEvent/handleUpsert';
 import cron from 'node-cron'
 import { whatsappTriggerIrrigacao } from './triggers/whatsappTriggerIrrigacao';
+import { checkInactivity } from './components/talk_timeout/talk_timeout';
+import { Logger } from './logger/Logger';
 
 export function isInstanceOfThread(obj: any): obj is Thread {
   return 'id' in obj;
 }
+const logger = new Logger();
 
 async function connectToWhatsApp() {
   const {state, saveCreds} = await useMultiFileAuthState('gpzap')
@@ -40,9 +43,18 @@ async function connectToWhatsApp() {
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('messages.upsert', async (m) => {
-    await handleUpsert(m, sock)
+    try{
+      await handleUpsert(m, sock)
+    } catch (error) {
+      logger.error("Houve um erro no handleUpsert")
+
+    }
   });
-  
+
+  cron.schedule('* * * * *', () => {
+    checkInactivity(sock)
+  });
+
   /*cron.schedule('0 5 * * *', async () => {
     console.log('Chamando função whatsappTriggerIrrigacao...');
     await whatsappTriggerIrrigacao(sock); 
@@ -50,5 +62,4 @@ async function connectToWhatsApp() {
 
 }
 
-console.log("Por favor senhor me ajuda")
 connectToWhatsApp();
