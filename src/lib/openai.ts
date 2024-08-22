@@ -41,11 +41,11 @@ export async function createMessage(
 export async function executeRun(
   thread: OpenAI.Beta.Threads.Thread,
   assistanId: string,
-  userData: ResponseAgricultorFilterDTO
+  userData?: ResponseAgricultorFilterDTO
 ) {
   const assistant = await getAssistant(assistanId);
   let resposta = "";
-  const userInfo = `
+  const userInfo = userData ? `
   Nome: ${userData.nome || "não informado"}
   Idade: ${userData.idade !== null ? userData.idade : "não informado"}
   Gênero: ${userData.genero || "não informado"}
@@ -63,9 +63,9 @@ export async function executeRun(
       ? userData.culturas.join(", ")
       : "não informado"
   }
-  `;
+  ` : null;
 
-  const instructions = `Aqui estão algumas informações básicas desse usuário: ${userInfo}`;
+  const instructions = userInfo ? `Aqui estão algumas informações básicas desse usuário: ${userInfo}` : null;
   console.log(instructions);
 
   await executionQueue.enqueue(async () => {
@@ -117,7 +117,7 @@ export async function executeRun(
         try {
           run = await openai.beta.threads.runs.createAndPoll(thread.id, {
             assistant_id: assistant.id,
-            additional_instructions: instructions,
+            additional_instructions: instructions ? instructions : '',
           });
           break;
         } catch (error) {
