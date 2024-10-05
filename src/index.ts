@@ -73,7 +73,7 @@ async function connectToWhatsApp() {
 
   sock.ev.on('messages.upsert', async (m) => {
     try{
-      await handleUpsert(m, sock)
+      await handleUpsert(m, sock, false)
     } catch (error) {
       logger.error("Houve um erro no handleUpsert")
 

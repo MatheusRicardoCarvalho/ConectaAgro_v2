@@ -31,8 +31,9 @@ interface HandleUpsertResult {
   response?: string;
 }
 
-export async function handleUpsert(m: MessageUpsert, sock: WASocket, appId?: number, cpf?: string): Promise<HandleUpsertResult> {
+export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean, appId?: number, cpf?: string): Promise<HandleUpsertResult> {
   let dataMessageHistory: RequestMessageDTO
+  if (!api)     return { success: false, error: "whatsapp response desativado" };
 
   logger.info("Resposta em processo: ");
   if (!m.messages || m.messages.length === 0) return { success: false, error: "Nenhuma mensagem recebida" };

@@ -45,7 +45,7 @@ export const createRoutes = (sock: WASocket) => {
         let data: ExtendedSendMessage
         const dataReq = req.body as SendMessage
         data = prepareData(dataReq)
-      const result = await handleUpsert(data, sock, dataReq.appId, dataReq.cpf);
+      const result = await handleUpsert(data, sock, true, dataReq.appId, dataReq.cpf);
       if (result.success) {
         res.status(200).json({ success: true, response: result.response });
       } else {
