@@ -3,17 +3,17 @@ import { createThread } from "../../../../lib/openai";
 import { api } from "../../api";
 import { RequestAgricultorFilterDTO } from "../../dtos/agricultor/RequestAgricultorFilterDto";
 import { ResponseAgricultorFilterDTO } from "../../dtos/agricultor/ResponseAgricultorFilterDto";
-import { createMessage } from "../post/createMessage";
+import { createMessageConectaApi } from "../post/createMessage";
 import { RequestMessageDTO } from "../../dtos/message/RequestMessageDto";
 
-export async function createUser(telefone: string, userMessage: string): Promise<ResponseAgricultorFilterDTO | undefined> {
+export async function createUser(telefone: string, userMessage: string, appId: number, cpf?: string): Promise<ResponseAgricultorFilterDTO | undefined> {
     const thread = [(await createThread()).id];
-    const data: RequestAgricultorFilterDTO = { telefone, municipioId: 1, thread };
+    const data: RequestAgricultorFilterDTO = { telefone, municipioId: 1, appId, cpf,thread };
     try {
         const response: AxiosResponse = await api.post('/agricultor', data);
         const user: ResponseAgricultorFilterDTO = response.data
         const dataMessage: RequestMessageDTO = {agricultor: {connect: {id: user.id}}, conteudo: userMessage, remetente: 'USER'}
-        const responseCreateMessage = await createMessage(dataMessage)
+        const responseCreateMessage = await createMessageConectaApi(dataMessage)//assincrono
         return  user;
     } catch (error: any) {
         if (error.response) {

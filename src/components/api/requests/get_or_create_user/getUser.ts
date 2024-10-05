@@ -3,9 +3,9 @@ import { api } from "../../api";
 import { RequestAgricultorFilterDTO } from "../../dtos/agricultor/RequestAgricultorFilterDto";
 import { ResponseAgricultorFilterDTO } from "../../dtos/agricultor/ResponseAgricultorFilterDto";
 
-export async function getUser(telefone: string): Promise<any | undefined> {
+export async function getUser(telefone: string, cpf?: string): Promise<any | undefined> {
     const thread = [(await createThread()).id];
-    const data: RequestAgricultorFilterDTO = { telefone};
+    const data: RequestAgricultorFilterDTO = cpf ? {cpf} : { telefone };
     try {
         const response = await api.post('/agricultor/filter', data);
         return response.data[0] as any;

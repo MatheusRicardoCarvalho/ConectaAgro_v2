@@ -32,8 +32,8 @@ export async function handleAudioMessage(m: MessageUpsert, sock: WASocket): Prom
 async function transcribeAudio(audioStream: Transform): Promise<string> {
     const form = new FormData();
     form.append('file', audioStream, {
-        contentType: 'audio/ogg', // Ajuste o tipo MIME conforme necessário
-        filename: 'audio.ogg'      // Nome fictício do arquivo
+        contentType: 'audio/ogg',
+        filename: 'audio.ogg'
     });
     form.append('model', 'whisper-1');
 

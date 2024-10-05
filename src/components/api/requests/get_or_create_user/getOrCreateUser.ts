@@ -1,16 +1,19 @@
+import { error } from "console";
 import { api } from "../../api";
 import { RequestAgricultorFilterDTO } from "../../dtos/agricultor/RequestAgricultorFilterDto";
 import { ResponseAgricultorFilterDTO } from "../../dtos/agricultor/ResponseAgricultorFilterDto";
 import { createUser } from "./createUser";
 
-export async function getOrCreateUser(telefone: string, userMessage: string): Promise<ResponseAgricultorFilterDTO | undefined> {
+export async function getOrCreateUser(telefone: string, userMessage: string, appId: number, cpf?: string): Promise<ResponseAgricultorFilterDTO | undefined> {
     const data: RequestAgricultorFilterDTO = { telefone };
     try {
         const result = await api.post("agricultor/filter", data);
         console.log("ENTROU NO FLUXOHANDLER \n\n"+JSON.stringify(result.data));
 
+        if(result.status != 200) throw new Error("Erro ao filtrar usuário")
+
         if (!result.data[0]) {
-            const user = await createUser(telefone, userMessage);
+            const user = await createUser(telefone,userMessage, appId, cpf);
             console.log("Retorno: \n\n"+ JSON.stringify(user));
 
             if (user === undefined) {

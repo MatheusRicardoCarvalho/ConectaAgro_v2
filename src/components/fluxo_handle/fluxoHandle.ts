@@ -3,7 +3,7 @@ import { RequestMessageDTO } from "../api/dtos/message/RequestMessageDto";
 import { ResponseMessageDTO } from "../api/dtos/message/ResponseMessageDto";
 import { convertToRequestAgricultorFilterDTO } from "../api/mappers/agricultor/convertToRequestAgricultorFilterDTO";
 import { getLastBotMessage } from "../api/requests/get/getLastBotMessage";
-import { createMessage } from "../api/requests/post/createMessage";
+import { createMessageConectaApi } from "../api/requests/post/createMessage";
 import { updateUser } from "../api/requests/update/updateUser";
 
 const escolaridade = {
@@ -92,14 +92,13 @@ export async function fluxoHandle(user: ResponseAgricultorFilterDTO, messageUser
     if (lastBotMessage == null || lastBotMessage.conteudo != res) {
       console.log("1 MENSAGEM \n\n")
       const dataMessage: RequestMessageDTO = { conteudo: res, remetente: 'BOT', agricultor: { connect: { id: user.id } } };
-      await createMessage(dataMessage);
+      await createMessageConectaApi(dataMessage);
       return res;
     }
   }
 
   if (messageUser) {
     if (validateResponse(nextQuestionKey, messageUser)) {
-      console.log("para continuar \n\n\n");
       const updatedUser = await updateAndSaveUser(user, nextQuestionKey, messageUser);
       if((nextQuestionKey == 'culturas' && messageUser && validateResponse(nextQuestionKey, messageUser))) return "fim questionario"
       for (const { key, question } of questions) {
@@ -117,7 +116,7 @@ export async function fluxoHandle(user: ResponseAgricultorFilterDTO, messageUser
       const nextQuestion = questions.find(q => q.key === nextQuestionKey)?.question;
       const res = instructions + `${nextQuestion}`;
       const dataMessage: RequestMessageDTO = { conteudo: res, remetente: 'BOT', agricultor: { connect: { id: user.id } } };
-      await createMessage(dataMessage);
+      await createMessageConectaApi(dataMessage);
       return res;
     } else {
       const repeatQuestion = questions.find(q => q.key === nextQuestionKey)?.question;
@@ -156,7 +155,7 @@ async function updateAndSaveUser(user: ResponseAgricultorFilterDTO, key: string,
         updatedUser.idade = parseInt(response);
         break;
       case 'tamanhoPropriedade':
-        updatedUser.tamanhoPropriedade = parseFloat(response.replace(',', '.')); // Converte vírgula para ponto
+        updatedUser.tamanhoPropriedade = parseFloat(response.replace(',', '.'));
         break;
       case 'culturas':
         updatedUser.culturas = response.split(',').map(cultura => cultura.trim());

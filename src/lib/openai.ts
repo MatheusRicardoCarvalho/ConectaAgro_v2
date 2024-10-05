@@ -146,9 +146,9 @@ export async function executeRun(
         resposta += "A resposta gerada foi INCOMPLETA";
       } else {
         console.log("Run status:", run.status);
-        resposta =
-          "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?";
+        throw new Error("Erro ao executar run: " + run.status);
       }
+
     } catch (error) {
       console.error("Erro ao executar run:", error);
       throw error;
@@ -179,6 +179,7 @@ async function handleRunStatus(
       return await handleRequiresAction(run, thread);
     } else {
       console.log("Run status:", run.status);
+      throw new Error("Erro ao executar run: " + run.status);
       return "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?";
     }
   } catch (error) {

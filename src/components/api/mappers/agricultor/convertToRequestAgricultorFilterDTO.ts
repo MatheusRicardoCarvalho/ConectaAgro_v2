@@ -13,7 +13,7 @@ export function convertToRequestAgricultorFilterDTO(
     telefone: responseDto.telefone ?? undefined,
     email: responseDto.email ?? undefined,
     escolaridade: responseDto.escolaridade ?? undefined,
-    tamanhoPropriedade: responseDto.tamanhoPropriedade?.toString() ?? undefined,
+    tamanhoPropriedade: responseDto.tamanhoPropriedade ?? undefined,
     culturas: responseDto.culturas.length > 0 ? responseDto.culturas : undefined,
     thread: responseDto.thread.length > 0 ? responseDto.thread : undefined,
     municipioId: responseDto.municipioId

@@ -4,7 +4,7 @@ import { ResponseAgricultorFilterDTO } from "../../dtos/agricultor/ResponseAgric
 import { RequestMessageDTO } from "../../dtos/message/RequestMessageDto";
 import { ResponseMessageDTO } from "../../dtos/message/ResponseMessageDto";
 
-export async function createMessage(data: RequestMessageDTO): Promise<ResponseMessageDTO> {
+export async function createMessageConectaApi(data: RequestMessageDTO): Promise<ResponseMessageDTO> {
     try {
         const response = await api.post(`messages`, data)
         return response.data
