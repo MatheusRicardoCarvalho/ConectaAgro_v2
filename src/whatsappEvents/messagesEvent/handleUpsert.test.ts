@@ -49,7 +49,7 @@ describe('testa respostas do handleUpsert', () => {
       type: 'notify',
     };
 
-    const result = await handleUpsert(message, mockSocket);
+    const result = await handleUpsert(message, mockSocket, false);
 
     expect(result).toEqual({ success: false, error: 'Tipo de mensagem não suportado' });
     expect(mockSocket.sendMessage).not.toHaveBeenCalled();
@@ -69,7 +69,7 @@ describe('testa respostas do handleUpsert', () => {
       type: 'notify',
     };
 
-    const result = await handleUpsert(message, mockSocket);
+    const result = await handleUpsert(message, mockSocket, false);
 
     expect(result).toEqual({ success: true, response: 'Resposta do assistente' });
     // Note que não estamos mais verificando se sendMessage foi chamado,
@@ -96,7 +96,7 @@ describe('testa respostas do handleUpsert', () => {
       throw new Error('Erro de teste');
     });
 
-    const result = await handleUpsert(message, mockSocket);
+    const result = await handleUpsert(message, mockSocket, false);
 
     expect(result).toEqual({ success: false, error: 'Erro ao processar mensagem' });
   });
@@ -115,7 +115,7 @@ describe('testa respostas do handleUpsert', () => {
       type: 'notify',
     };
 
-    const result = await handleUpsert(message, mockSocket);
+    const result = await handleUpsert(message, mockSocket, false);
 
     expect(result).toEqual({ success: false, error: 'Mensagem de grupo ignorada' });
   });
