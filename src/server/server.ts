@@ -10,7 +10,7 @@ export function startServer(sock: WASocket) {
 
   app.use(createRoutes(sock));
 
-  const PORT = process.env.PORT || 4000;
+  const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
   });
