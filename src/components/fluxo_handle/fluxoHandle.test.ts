@@ -1,7 +1,7 @@
 import { fluxoHandle } from './fluxoHandle';
 import { ResponseAgricultorFilterDTO } from "../api/dtos/agricultor/ResponseAgricultorFilterDto";
 import { getLastBotMessage } from "../api/requests/get/getLastBotMessage";
-import { createMessage } from "../api/requests/post/createMessage";
+import { createMessageConectaApi } from "../api/requests/post/createMessage";
 import { updateUser } from "../api/requests/update/updateUser";
 
 // Mock das dependências
@@ -25,11 +25,13 @@ describe('fluxoHandle', () => {
       culturas: [],
       telefone: '5555555555',
       thread: [''],
-      municipioId: 1
+      municipioId: 1,
+      cpf: "1111",
+      appId: 1
     };
 
     (getLastBotMessage as jest.Mock).mockResolvedValue(null);
-    (createMessage as jest.Mock).mockResolvedValue({});
+    (createMessageConectaApi as jest.Mock).mockResolvedValue({});
     (updateUser as jest.Mock).mockResolvedValue({});
   });
 
@@ -71,7 +73,9 @@ describe('fluxoHandle', () => {
       culturas: [],
       thread: [''],
       municipioId: 1,
-      telefone: '5555555555'
+      telefone: '5555555555',
+      cpf: "1221",
+      appId: 1
     };
     const result = await fluxoHandle(mockUser, 'banana, maçã');
     expect(result).toBe('fim questionario');

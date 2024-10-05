@@ -128,7 +128,8 @@ describe('OpenAI functions', () => {
           culturas: ['Milho', 'Soja'],
           id: 0,
           thread: [],
-          municipioId: 0
+          municipioId: 0,
+          appId: 1
       };
 
       const result = await executeRun(mockThread as Thread, 'assistant-id', mockUserData);
