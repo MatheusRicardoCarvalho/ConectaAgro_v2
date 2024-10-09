@@ -113,16 +113,7 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
   return new Promise((resolve) => {
     addMessageToBuffer(customerPhone, messageText!, async (combinedMessage: string) => {
       try {
-        let response: string
-        if (customerPhone != "" && isNumeric(customerPhone)) response = await fluxoHandle(user!, combinedMessage);
-        else response = "Todas as perguntas foram respondidas.";
-
-        console.log("response MOCK TESTE JEST: "+response)
-        if (response != "Todas as perguntas foram respondidas." && response != "fim questionario") {
-          await sock.sendMessage(message.key.remoteJid!, { text: response });
-          return { success: true, response: response };
-        }
-
+        let response: string;
         if (threadId == null) {
           console.log("Vamos obter uma nova thread");
           const updatedUser = await resetUserThread(customerPhone);
@@ -131,50 +122,52 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
           thread = await getThread(threadId);
         }
 
+        if (api) {
+          if (user?.id && !user.questionarioBasico) {
+            resposta = await fluxoHandle(combinedMessage, thread, user.id);
+            console.log("Aqui a RESPOSTA NOVAAA" + resposta);
+            return resolve({ success: true, response: resposta }); // Resolva aqui
+          } else if(!user?.id){
+            resposta = "Sem acesso ao ID do usuário. Usuário não foi carregado";
+            return resolve({ success: false, response: resposta }); // Resolva aqui
+          }
+        }
+
         if (isInstanceOfThread(thread)) {
-          if (combinedMessage) {
-            if (response == "fim questionario") createMessage("ola", thread); 
-            else createMessage(combinedMessage, thread);
-          }
-          try{
+          try {
             resposta = (await executeRun(thread, process.env.ASSISTANT_ID + "", user!)) + "";
-          } catch(error) {
+          } catch (error) {
             resposta = "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?";
-            if(customerPhone != "" && !isAuthorizedApp(customerPhone) && desativarRespostas()) await sock.sendMessage(message.key.remoteJid!, { text: resposta });
-            logger.error("Menssagem para "+customerPhone+" respondida com erro: "+error)
-            updateLastMessageTimestamp(m)
-            
-            let dataMessage: RequestMessageDTO
-        if(user){
-          dataMessage = {agricultor: {connect: {id: user.id}}, conteudo: resposta, remetente: 'BOT'}
-        
-          await createMessageConectaApi(dataMessage)
-        } 
-            return { success: false, response: resposta };
+            if (customerPhone != "" && !isAuthorizedApp(customerPhone) && desativarRespostas()) await sock.sendMessage(message.key.remoteJid!, { text: resposta });
+            logger.error("Menssagem para " + customerPhone + " respondida com erro: " + error);
+            updateLastMessageTimestamp(m);
 
+            let dataMessage: RequestMessageDTO;
+            if (user) {
+              dataMessage = { agricultor: { connect: { id: user.id } }, conteudo: resposta, remetente: 'BOT' };
+              await createMessageConectaApi(dataMessage);
+            }
+            return resolve({ success: false, response: resposta }); // Resolva aqui
           }
-
         } else {
           console.log(thread);
         }
 
         console.debug(customerPhone, "👤", combinedMessage);
         const appAuthorizedApi: AuthorizedApp[] = JSON.parse(process.env.APP_AUTHORIZED_API as string);
-const appAuthorized = appAuthorizedApi[0]
-        console.log("QUAL O ERRO ? : "+isAuthorizedApp(customerPhone)+"\n\n Aqui o nome: "+appAuthorized.app)
-        //synthesizeSpeech(resposta)
-        if(customerPhone != "" && !isAuthorizedApp(customerPhone) && desativarRespostas()) await sock.sendMessage(message.key.remoteJid!, { text: resposta });
-        logger.info("Menssagem para "+customerPhone+" respondida")
-        updateLastMessageTimestamp(m)
-        if(user){
-          dataMessageHistory = {agricultor: {connect: {id: user.id}}, conteudo: resposta, remetente: 'BOT'}
-        
-          await createMessageConectaApi(dataMessageHistory)
-        } 
-        resolve({ success: true, response: resposta });
+        const appAuthorized = appAuthorizedApi[0];
+        console.log("QUAL O ERRO ? : " + isAuthorizedApp(customerPhone) + "\n\n Aqui o nome: " + appAuthorized.app);
+        if (customerPhone != "" && !isAuthorizedApp(customerPhone) && desativarRespostas()) await sock.sendMessage(message.key.remoteJid!, { text: resposta });
+        logger.info("Menssagem para " + customerPhone + " respondida");
+        updateLastMessageTimestamp(m);
+        if (user) {
+          dataMessageHistory = { agricultor: { connect: { id: user.id } }, conteudo: resposta, remetente: 'BOT' };
+          await createMessageConectaApi(dataMessageHistory);
+        }
+        return resolve({ success: true, response: resposta }); // Resolva aqui
       } catch (error) {
         logger.error("Erro ao processar mensagem: " + error);
-        resolve({ success: false, error: "Erro ao processar mensagem" });
+        return resolve({ success: false, error: "Erro ao processar mensagem" }); // Resolva aqui
       }
     });
   });

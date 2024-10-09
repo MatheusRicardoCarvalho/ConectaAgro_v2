@@ -124,7 +124,7 @@ describe('OpenAI functions', () => {
           telefone: '1234567890',
           email: 'john@example.com',
           escolaridade: 'Superior',
-          tamanhoPropriedade: 100,
+          tamanhoPropriedade: '100',
           culturas: ['Milho', 'Soja'],
           id: 0,
           thread: [],

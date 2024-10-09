@@ -9,9 +9,10 @@ export interface ResponseAgricultorFilterDTO {
     telefone: string | null;
     email: string | null;
     escolaridade: string | null;
-    tamanhoPropriedade: number | null;
+    tamanhoPropriedade: string | null;
     culturas: string[];
     thread: string[];
     municipioId: number;
-    appId: number
+    appId: number;
+    questionarioBasico?: boolean
 }

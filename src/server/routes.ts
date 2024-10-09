@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { response, Router } from "express";
 import { handleUpsert, MessageUpsert } from "../whatsappEvents/messagesEvent/handleUpsert";
 import { WASocket } from "@whiskeysockets/baileys";
 import jsonwebtoken from "jsonwebtoken";
@@ -49,7 +49,7 @@ export const createRoutes = (sock: WASocket) => {
       if (result.success) {
         res.status(200).json({ success: true, response: result.response });
       } else {
-        res.status(400).json({ success: false, error: result.error });
+        res.status(400).json({ success: false, error: result.error, response: result.response });
       }
     } catch (error) {
       res.status(500).json({ success: false, error: "Erro interno do servidor" });

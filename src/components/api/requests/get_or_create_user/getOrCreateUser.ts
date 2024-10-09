@@ -5,7 +5,7 @@ import { ResponseAgricultorFilterDTO } from "../../dtos/agricultor/ResponseAgric
 import { createUser } from "./createUser";
 
 export async function getOrCreateUser(telefone: string, userMessage: string, appId: number, cpf?: string): Promise<ResponseAgricultorFilterDTO | undefined> {
-    const data: RequestAgricultorFilterDTO = { telefone };
+    const data: RequestAgricultorFilterDTO = cpf ? {cpf} : { telefone };
     try {
         const result = await api.post("agricultor/filter", data);
         console.log("ENTROU NO FLUXOHANDLER \n\n"+JSON.stringify(result.data));

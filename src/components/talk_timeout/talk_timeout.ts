@@ -4,7 +4,7 @@ import { MessageUpsert } from "../../whatsappEvents/messagesEvent/handleUpsert";
 import { api } from "../api/api";
 import { ResponseAgricultorFilterDTO } from "../api/dtos/agricultor/ResponseAgricultorFilterDto";
 import { convertToRequestAgricultorFilterDTO } from "../api/mappers/agricultor/convertToRequestAgricultorFilterDTO";
-import { getUser } from "../api/requests/get_or_create_user/getUser";
+import { getUniqueUser, getUser } from "../api/requests/get_or_create_user/getUser";
 import { updateUser } from "../api/requests/update/updateUser";
 import { Logger } from "../../logger/Logger";
 
@@ -44,7 +44,8 @@ export function checkInactivity(sock: WASocket): void {
 }
 
 export async function resetUserThread(
-  phoneUser: string
+  phoneUser: string,
+  id?: number
 ): Promise<ResponseAgricultorFilterDTO> {
   // Implemente a lógica para redefinir a thread aqui
   console.log(`Redefinindo thread para o usuário ${phoneUser}.`);
@@ -52,9 +53,17 @@ export async function resetUserThread(
   try {
     const thread = await createThread();
     const newThread = thread.id;
-    let user = (await getUser(
+    let dataUser
+    let user
+    
+    if(id) {
+      dataUser = await getUniqueUser(id)
+    }
+    
+    user = (dataUser.cpf ? await getUser('', dataUser.cpf)  : await getUser(
       phoneUser
     )) as unknown as ResponseAgricultorFilterDTO;
+
     console.log("USUARIO QUE VAI TER A THREAD RESETADA" + user);
     user.thread = [newThread];
     const newUser = convertToRequestAgricultorFilterDTO(user);
