@@ -74,7 +74,8 @@ export async function executeRun(
   instructions += userId ? "O id desse usuário é: "+userId : ''
   console.log(instructions);
 
-  await executionQueue.enqueue(async () => {
+  // Use a fila de execução para a thread específica
+  await executionQueue.enqueue(thread.id, async () => {
     try {
       const allRuns = await openai.beta.threads.runs.list(thread.id, {
         limit: 20,
