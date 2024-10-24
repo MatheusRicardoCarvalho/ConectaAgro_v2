@@ -37,7 +37,7 @@ export function checkInactivity(sock: WASocket): void {
       // Remover o usuário do rastreamento de inatividade
       delete lastMessageTimestamp[user];
       sock.sendMessage(user, {
-        text: "Olá, percebi que você não mandou mais menssagens. Vou encerrar a conversa por aqui ok ?",
+        text: "Olá, percebi que você não mandou mais menssagens. Vou encerrar a conversa por aqui",
       });
     }
   }

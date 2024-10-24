@@ -1,7 +1,7 @@
 import { MessageUpsertType, WASocket, proto } from "@whiskeysockets/baileys";
 import { isInstanceOfThread } from "../..";
 import { findThreadIdByNumber, addNewThread } from "../../handleTrheads";
-import { getThread, createMessage, executeRun } from "../../lib/openai";
+import { getThread, createMessage, executeRun } from "../../lib/openaiFast";
 import { getOrCreateUser } from "../../components/api/requests/get_or_create_user/getOrCreateUser";
 import { ResponseAgricultorFilterDTO } from "../../components/api/dtos/agricultor/ResponseAgricultorFilterDto";
 import { fluxoHandle } from "../../components/fluxo_handle/fluxoHandle";
@@ -25,7 +25,7 @@ export interface MessageUpsert {
   type?: MessageUpsertType;
 }
 
-interface HandleUpsertResult {
+export interface HandleUpsertResult {
   success: boolean;
   error?: string;
   response?: string;
@@ -82,8 +82,12 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
 
   const customerPhone = message.key.remoteJid?.replace("@s.whatsapp.net", "") || "";
   let user: ResponseAgricultorFilterDTO | undefined
+  
+  let tentativas = 0
+
   while(true){
     const myAppId = appId ? appId : 1
+    if(tentativas > 3) return { success: false, error: 'Erro ao obter ou criar usuario'}
     try {
       user = await getOrCreateUser(
       customerPhone,
@@ -94,6 +98,7 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
     
     break
     } catch(err) {
+      tentativas++
       logger.error("erro ao obter usuário, uma nova tentativa será feita: "+ err)
       await new Promise((resolve) => setTimeout(resolve, 500)); // Aguarda 500 ms
     }

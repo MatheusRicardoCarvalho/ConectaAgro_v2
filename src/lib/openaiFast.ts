@@ -7,7 +7,6 @@ import { updateUser } from "../components/api/requests/update/updateUser";
 import { resetUserThread } from "../components/talk_timeout/talk_timeout";
 import { getUniqueUser, getUser } from "../components/api/requests/get_or_create_user/getUser";
 import { RequestAgricultorFilterDTO } from "../components/api/dtos/agricultor/RequestAgricultorFilterDto";
-import { threadId } from "worker_threads";
 dotenv.config();
 
 const executionQueue = new ExecutionQueue();
@@ -35,11 +34,9 @@ export async function getThread(threadId: string) {
 
 export async function createMessage(
   content: string,
-  thread?: OpenAI.Beta.Threads.Thread,
-  threadId?: string
+  thread: OpenAI.Beta.Threads.Thread
 ) {
-  const myThread = thread ? thread.id : threadId+''
-  const message = await openai.beta.threads.messages.create(myThread, {
+  const message = await openai.beta.threads.messages.create(thread.id, {
     role: "user",
     content: content,
   });
@@ -77,97 +74,91 @@ export async function executeRun(
   instructions += userId ? "O id desse usuário é: "+userId : ''
   console.log(instructions);
 
-  try {
-    await executionQueue.enqueue(thread.id, async () => {
-      try {
-        const allRuns = await openai.beta.threads.runs.list(thread.id, {
-          limit: 20,
-          order: "desc",
-        });
-        console.log("Quantidade de runs: " + allRuns.data.length);
-        console.log(
-          "Run mais recente:",
-          allRuns.data[0]?.status,
-          " --- ",
-          allRuns.data[0]?.id
-        );
-  
-        let inProgressRun = allRuns.data.find(
-          (run) =>
-            run.status === "in_progress" ||
-            run.status === "queued" ||
-            run.status === "cancelling"
-        );
-        console.log("Run em progresso encontrada:", inProgressRun?.id);
-  
-        if (inProgressRun) {
-          // Aguarda a execução em andamento ser concluída
-          while (
-            inProgressRun.status === "in_progress" ||
-            inProgressRun.status === "queued" ||
-            inProgressRun.status === "cancelling"
-          ) {
-            console.log(`Aguardando a run ${inProgressRun.id} ser concluída...`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            const updatedRun = await openai.beta.threads.runs.retrieve(
-              thread.id,
-              inProgressRun.id
-            );
-            inProgressRun = updatedRun;
-            console.log(
-              `Status atualizado da run ${inProgressRun.id}: ${inProgressRun.status}`
-            );
-          }
+    try {
+      const allRuns = await openai.beta.threads.runs.list(thread.id, {
+        limit: 20,
+        order: "desc",
+      });
+      console.log("Quantidade de runs: " + allRuns.data.length);
+      console.log(
+        "Run mais recente:",
+        allRuns.data[0]?.status,
+        " --- ",
+        allRuns.data[0]?.id
+      );
+
+      let inProgressRun = allRuns.data.find(
+        (run) =>
+          run.status === "in_progress" ||
+          run.status === "queued" ||
+          run.status === "cancelling"
+      );
+      console.log("Run em progresso encontrada:", inProgressRun?.id);
+
+      if (inProgressRun) {
+        // Aguarda a execução em andamento ser concluída
+        while (
+          inProgressRun.status === "in_progress" ||
+          inProgressRun.status === "queued" ||
+          inProgressRun.status === "cancelling"
+        ) {
+          console.log(`Aguardando a run ${inProgressRun.id} ser concluída...`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const updatedRun = await openai.beta.threads.runs.retrieve(
+            thread.id,
+            inProgressRun.id
+          );
+          inProgressRun = updatedRun;
+          console.log(
+            `Status atualizado da run ${inProgressRun.id}: ${inProgressRun.status}`
+          );
         }
-  
-        let run;
-  
-        while (true) {
-          try {
-            run = await openai.beta.threads.runs.createAndPoll(thread.id, {
-              assistant_id: assistant.id,
-              additional_instructions: instructions ? instructions : '',
-            });
-            break;
-          } catch (error) {
-            console.error("Erro ao criar e monitorar a run:", error);
-  
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          }
-        }
-  
-        if (run.status === "completed") {
-          const messages = await openai.beta.threads.messages.list(run.thread_id);
-          const lastMessage = messages.data[messages.data.length - 1];
-  
-          // Itera sobre o conteúdo da última mensagem
-          for (const message of messages.data.reverse()) {
-            if ("text" in message.content[0] && message.content[0].text) {
-              console.log(message.content[0].text.value);
-              resposta = message.content[0].text.value;
-            }
-          }
-        } else if (run.status === "requires_action") {
-          console.log(run.status);
-          resposta += await handleRunStatus(run, thread);
-        } else if (run.status === "incomplete") {
-          console.log(run.status);
-          resposta += "A resposta gerada foi INCOMPLETA";
-        } else {
-          console.log("Run status:", run.status);
-          throw new Error("Erro ao executar run: " + run.status);
-        }
-  
-      } catch (error) {
-        console.error("Erro ao executar run:", error);
-        throw error;
       }
-    });
-    return resposta;
-  } catch (err) {
-    return err
-  }
-  
+
+      let run;
+
+      while (true) {
+        try {
+          run = await openai.beta.threads.runs.createAndPoll(thread.id, {
+            assistant_id: assistant.id,
+            additional_instructions: instructions ? instructions : '',
+          });
+          break;
+        } catch (error) {
+          console.error("Erro ao criar e monitorar a run:", error);
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (run.status === "completed") {
+        const messages = await openai.beta.threads.messages.list(run.thread_id);
+        const lastMessage = messages.data[messages.data.length - 1];
+
+        // Itera sobre o conteúdo da última mensagem
+        for (const message of messages.data.reverse()) {
+          if ("text" in message.content[0] && message.content[0].text) {
+            console.log(message.content[0].text.value);
+            resposta = message.content[0].text.value;
+          }
+        }
+      } else if (run.status === "requires_action") {
+        console.log(run.status);
+        resposta += await handleRunStatus(run, thread);
+      } else if (run.status === "incomplete") {
+        console.log(run.status);
+        resposta += "A resposta gerada foi INCOMPLETA";
+      } else {
+        console.log("Run status:", run.status);
+        throw new Error("Erro ao executar run: " + run.status);
+      }
+
+    } catch (error) {
+      console.error("Erro ao executar run:", error);
+      throw error;
+    }
+    
+  return resposta;
 }
 
 async function handleRunStatus(

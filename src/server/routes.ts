@@ -1,10 +1,11 @@
 import { response, Router } from "express";
-import { handleUpsert, MessageUpsert } from "../whatsappEvents/messagesEvent/handleUpsert";
+import { handleUpsert, HandleUpsertResult, MessageUpsert } from "../whatsappEvents/messagesEvent/handleUpsert";
 import { WASocket } from "@whiskeysockets/baileys";
 import jsonwebtoken from "jsonwebtoken";
 import dotenv from 'dotenv';
 import { AuthorizedApp, ExtendedMessagesItem, ExtendedSendMessage, SendMessage} from "./@server/types";
 import { tokenValited } from "./middlewares/auth";
+import { error } from "console";
 
 dotenv.config();
 
@@ -45,7 +46,10 @@ export const createRoutes = (sock: WASocket) => {
         let data: ExtendedSendMessage
         const dataReq = req.body as SendMessage
         data = prepareData(dataReq)
+        console.log("Requisição recebida")
       const result = await handleUpsert(data, sock, true, dataReq.appId, dataReq.cpf);
+      //const result = await test();
+
       if (result.success) {
         res.status(200).json({ success: true, response: result.response });
       } else {
@@ -56,14 +60,17 @@ export const createRoutes = (sock: WASocket) => {
     }
   });
 
-  
-
   return routes;
 };
-
+async function test(): Promise<HandleUpsertResult> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({ success: true, response: "olá!", error: 'não tem' });
+    }, 5000);
+  });
+}
 
 function prepareData(dataReq: SendMessage): ExtendedSendMessage {
-    // Mapeando as mensagens e adicionando a propriedade `key`
     const extendedMessages = dataReq.messages.map(messageItem => {
       const extendedMessageItem: ExtendedMessagesItem = {
         ...messageItem,
