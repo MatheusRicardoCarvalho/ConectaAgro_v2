@@ -155,7 +155,7 @@ async function updateAndSaveUser(user: ResponseAgricultorFilterDTO, key: string,
         updatedUser.idade = parseInt(response);
         break;
       case 'tamanhoPropriedade':
-        updatedUser.tamanhoPropriedade = parseFloat(response.replace(',', '.'));
+        updatedUser.tamanhoPropriedade = ''+ parseFloat(response.replace(',', '.'));
         break;
       case 'culturas':
         updatedUser.culturas = response.split(',').map(cultura => cultura.trim());

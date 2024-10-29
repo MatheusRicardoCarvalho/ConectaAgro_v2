@@ -1,7 +1,7 @@
 import { MessageUpsertType, WASocket, proto } from "@whiskeysockets/baileys";
 import { isInstanceOfThread } from "../..";
 import { findThreadIdByNumber, addNewThread } from "../../handleTrheads";
-import { getThread, createMessage, executeRun } from "../../lib/openaiFast";
+import { getThread, createMessage, executeRun } from "../../lib/openai";
 import { getOrCreateUser } from "../../components/api/requests/get_or_create_user/getOrCreateUser";
 import { ResponseAgricultorFilterDTO } from "../../components/api/dtos/agricultor/ResponseAgricultorFilterDto";
 import { fluxoHandle } from "../../components/fluxo_handle/fluxoHandle";
@@ -33,7 +33,7 @@ export interface HandleUpsertResult {
 
 export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean, appId?: number, cpf?: string): Promise<HandleUpsertResult> {
   let dataMessageHistory: RequestMessageDTO
-  if (!api)     return { success: false, error: "whatsapp response desativado" };
+  //if (!api)     return { success: false, error: "whatsapp response desativado" };
 
   logger.info("Resposta em processo: ");
   if (!m.messages || m.messages.length === 0) return { success: false, error: "Nenhuma mensagem recebida" };
@@ -71,9 +71,9 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
     try {
       messageText = await handleAudioMessage(m, sock);
     } catch(error) {
-      /*await sock.sendMessage(message.key.remoteJid!, {
+      await sock.sendMessage(message.key.remoteJid!, {
         text: "Não consegui entender seu audio, poderia falar novamente ?",
-      });*/
+      });
       updateLastMessageTimestamp(m);
       return { success: false, error: "Erro ao processar audio" };
     }
@@ -100,7 +100,7 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
     } catch(err) {
       tentativas++
       logger.error("erro ao obter usuário, uma nova tentativa será feita: "+ err)
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Aguarda 500 ms
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Aguarda 500 ms
     }
   }
   
@@ -112,12 +112,12 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
   if(user && messageText){
     dataMessageHistory = {agricultor: {connect: {id: user.id}}, conteudo: messageText, remetente: 'USER'}
   
-    await createMessageConectaApi(dataMessageHistory)
+    createMessageConectaApi(dataMessageHistory)
   }
 
-  return new Promise((resolve) => {
-    addMessageToBuffer(customerPhone, messageText!, async (combinedMessage: string) => {
-      try {
+
+  return new Promise(async (resolve) => {
+    try {
         let response: string;
         if (threadId == null) {
           console.log("Vamos obter uma nova thread");
@@ -129,8 +129,9 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
 
         if (api) {
           if (user?.id && !user.questionarioBasico) {
-            resposta = await fluxoHandle(combinedMessage, thread, user.id);
+            resposta = await fluxoHandle(messageText, thread, user.id);
             console.log("Aqui a RESPOSTA NOVAAA" + resposta);
+            await sock.sendMessage(message.key.remoteJid!, { text: resposta })
             return resolve({ success: true, response: resposta }); // Resolva aqui
           } else if(!user?.id){
             resposta = "Sem acesso ao ID do usuário. Usuário não foi carregado";
@@ -140,6 +141,7 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
 
         if (isInstanceOfThread(thread)) {
           try {
+            createMessage(messageText+'', thread)
             resposta = (await executeRun(thread, process.env.ASSISTANT_ID + "", user!)) + "";
           } catch (error) {
             resposta = "Perdão, estou com muitas conversas e não consegui entender o que você quis dizer. Poderia repetir ?";
@@ -158,11 +160,13 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
           console.log(thread);
         }
 
-        console.debug(customerPhone, "👤", combinedMessage);
+        console.debug(customerPhone, "👤", messageText);
         const appAuthorizedApi: AuthorizedApp[] = JSON.parse(process.env.APP_AUTHORIZED_API as string);
         const appAuthorized = appAuthorizedApi[0];
         console.log("QUAL O ERRO ? : " + isAuthorizedApp(customerPhone) + "\n\n Aqui o nome: " + appAuthorized.app);
-        if (customerPhone != "" && !isAuthorizedApp(customerPhone) && desativarRespostas()) await sock.sendMessage(message.key.remoteJid!, { text: resposta });
+        //if (customerPhone != "" && !isAuthorizedApp(customerPhone) && desativarRespostas())
+        console.log("Qual o preço da UVAAA ??")
+        await sock.sendMessage(message.key.remoteJid!, { text: resposta });
         logger.info("Menssagem para " + customerPhone + " respondida");
         updateLastMessageTimestamp(m);
         if (user) {
@@ -174,10 +178,9 @@ export async function handleUpsert(m: MessageUpsert, sock: WASocket,api: boolean
         logger.error("Erro ao processar mensagem: " + error);
         return resolve({ success: false, error: "Erro ao processar mensagem" }); // Resolva aqui
       }
-    });
   });
 }
 
 function desativarRespostas(){
-  return false
+  return true
 }

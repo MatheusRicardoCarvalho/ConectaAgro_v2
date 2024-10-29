@@ -15,7 +15,6 @@ export async function handleAudioMessage(m: MessageUpsert, sock: WASocket): Prom
     console.log("URL do audio: \n" + audioUrl);
 
     try {
-            // Faz o download do áudio como um stream
     const audioStream = await downloadContentFromMessage({ mediaKey, directPath, url: audioUrl }, "audio");
 
     const transcription = await transcribeAudio(audioStream);
@@ -48,6 +47,6 @@ async function transcribeAudio(audioStream: Transform): Promise<string> {
         return '' + response.data.text;
     } catch (error) {
         console.error('Erro ao transcrever o áudio:', error);
-        throw new Error ("Erro na transcrição de áudio"+error)
+        throw error
     }
 }

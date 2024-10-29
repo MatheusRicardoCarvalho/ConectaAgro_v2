@@ -6,7 +6,7 @@ import { tokenValited } from './middlewares/auth'; // Importando o middleware
 import openaiRoutes from './routes/openaiRoutes';
 
 export function startServer(sock: WASocket) {
-  const app = express();
+  /*const app = express();
   app.use(express.json());
 
   app.use(createRoutes(sock));
@@ -17,5 +17,5 @@ export function startServer(sock: WASocket) {
     console.log(`Servidor rodando na porta ${PORT}`);
   });
 
-  return app;
+  return app;*/
 }
